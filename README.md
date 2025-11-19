@@ -28,6 +28,24 @@ The model checkpoint we studied in our work is provided in `model.pt`.
 #### 4. Replication of Results
 The notebook `figures.ipynb` replicates all figures we report in our paper.
 
+## More info
+In our experiments, we use a 6-layer, decoderonly transformer with an embedding dimension
+of 128, a single attention head per layer, and a feedforward dimension of 512, resulting in a total of
+1.2 million parameters. The training dataset consists of 150,000 generated trees.
+The edge lists of
+these trees are shuffled to prevent the model from
+learning simple heuristics and encourage structural
+understanding of trees. To evaluate the performance of our model, we compute the accuracy
+based on the exact match of complete sequences
+using greedy decoding. Our model achieves 99.7 %
+accuracy rate on a test set of 15,000 unseen trees,
+despite seeing just a small fraction of all possible
+trees during training (see Appendix B). This suggests that generalization is required for meaningful
+performance and that the model has learned to be
+capable of solving pathfinding in trees.
+
+
+
 ## Citation Information
 BibTeX citation:
 ```bibtex

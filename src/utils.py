@@ -7,6 +7,11 @@ import torch
 import wandb
 from tqdm import tqdm
 
+DEVICE = (
+    "cuda" if torch.cuda.is_available() else (
+        "mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu"
+    )
+)
 
 def get_loaders(dataset, batch_size, train_test_split=0.9):
     # Split the dataset into train and test sets
@@ -75,9 +80,9 @@ def train(model, train_loader, test_loader, n_epochs, learning_rate=3e-4, betas=
         for idx, (tokens, mask) in enumerate(train_loader):
             optimizer.zero_grad()
             
-            tokens = tokens.cuda().to(torch.long)
+            tokens = tokens.to(DEVICE).to(torch.long)
             inputs = tokens[:, :-1]
-            output_mask = mask[:, 1:].cuda()
+            output_mask = mask[:, 1:].to(DEVICE)
             targets = tokens[:, 1:][output_mask]
             
             outputs = model(inputs)[output_mask]
@@ -110,9 +115,9 @@ def train(model, train_loader, test_loader, n_epochs, learning_rate=3e-4, betas=
 
             for idx, (tokens, mask) in enumerate(test_loader):
 
-                tokens = tokens.cuda().to(torch.long)
+                tokens = tokens.to(DEVICE).to(torch.long)
                 inputs = tokens[:, :-1]
-                output_mask = mask[:, 1:].cuda()
+                output_mask = mask[:, 1:].to(DEVICE)
                 targets = tokens[:, 1:][output_mask]
                 
                 outputs = model(inputs)[output_mask]
@@ -148,7 +153,7 @@ def train(model, train_loader, test_loader, n_epochs, learning_rate=3e-4, betas=
 def get_example_cache(example, model, dataset):
     # Output tokens and forward cache
     tokens = dataset.tokenize(example)[:-1]
-    inputs = torch.from_numpy(tokens).unsqueeze(0).cuda()
+    inputs = torch.from_numpy(tokens).unsqueeze(0).to(DEVICE)
     _, cache = model.run_with_cache(inputs)
     labels = [dataset.idx2tokens[idx] for idx in tokens]
     return labels, cache
@@ -236,7 +241,7 @@ def eval_model(model, dataset, test_graph):
     flag = False
     while not flag and curr_idx < dataset.max_seq_length - 1:
         # Convert to pytorch
-        input_tokens = torch.from_numpy(test_graph_tokens).to(torch.long).cuda()
+        input_tokens = torch.from_numpy(test_graph_tokens).to(torch.long).to(DEVICE)
         input_tokens[curr_idx:] = 0
         input_tokens = input_tokens.unsqueeze(0)[:, :-1]
         # Run model
@@ -260,7 +265,7 @@ def is_model_correct(model, dataset, test_graph, return_probs=False):
     test_graph_tokens = dataset.tokenize(test_graph)
     start_idx = np.where(test_graph_tokens == dataset.start_token)[0].item() + 1
     end_idx = num_last([dataset.idx2tokens[i] for i in test_graph_tokens], ",")
-    input_tokens = torch.from_numpy(test_graph_tokens).to(torch.long).cuda()
+    input_tokens = torch.from_numpy(test_graph_tokens).to(torch.long).to(DEVICE)
     input_tokens = input_tokens.unsqueeze(0)[:, :-1]
 
     # Run model
@@ -286,7 +291,7 @@ def is_model_correct_multiple(model, dataset, multiple_test_graph, return_probs=
         test_graph_tokens = dataset.tokenize(test_graph)
         start_idx = np.where(test_graph_tokens == dataset.start_token)[0].item() + 1
         end_idx = num_last([dataset.idx2tokens[i] for i in test_graph_tokens], ",")
-        input_tokens = torch.from_numpy(test_graph_tokens).to(torch.long).cuda()
+        input_tokens = torch.from_numpy(test_graph_tokens).to(torch.long).to(DEVICE)
         input_tokens = input_tokens.unsqueeze(0)[:, :-1]
         multiple_input_tokens.append(input_tokens)
         multiple_start_idx.append(start_idx)

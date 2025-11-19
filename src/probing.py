@@ -4,7 +4,11 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
-
+DEVICE = (
+    "cuda" if torch.cuda.is_available() else (
+        "mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu"
+    )
+)
 class Probe:
     
     def __init__(
@@ -13,7 +17,7 @@ class Probe:
         batch_size: int = 2048,
         max_iter: int = 200,
         verbose: bool = False,
-        device: str = "cuda",
+        device: str = DEVICE,
     ):
         self.model = None
         self.learning_rate_init = learning_rate_init
@@ -216,7 +220,7 @@ class MultiClsProbe(Probe):
         return torch.nn.functional.binary_cross_entropy_with_logits(
             input=pred,
             target=y,
-            pos_weight=torch.tensor([1.0]).to('cuda')
+            pos_weight=torch.tensor([1.0]).to(DEVICE)
         )
 
     def get_acc(self, y, pred):

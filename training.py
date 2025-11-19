@@ -5,6 +5,12 @@ from transformer_lens import HookedTransformer, HookedTransformerConfig
 from src.tree_generation import GraphDataset
 from src.utils import train, get_loaders
 
+import torch
+DEVICE = (
+    "cuda" if torch.cuda.is_available() else (
+        "mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu"
+    )
+)
 
 def main(args):
    
@@ -21,7 +27,7 @@ def main(args):
         d_mlp=args.d_mlp,
         d_head=args.d_head,
         d_vocab=len(dataset.idx2tokens),
-        device="cuda",
+        device=DEVICE,
         attention_dir="causal",
         act_fn="gelu",
     )

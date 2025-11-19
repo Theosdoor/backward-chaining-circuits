@@ -1,0 +1,31 @@
+name: cot
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - ipykernel
+  - ipython
+  - matplotlib
+  - numpy
+  - pandas
+  - pip
+  - scikit-learn
+  - scipy
+  - seaborn
+  - sympy
+  - tqdm
+  - networkx
+  - pip:
+      - transformer-lens
+      - circuitsvis
+      - torch
+      - wandb
+      - imgkit
+      - einops
+      - jaxtyping
+      - rich
+      - prettytable
+      - jupyter
+      - plotly
+      - kaleido
