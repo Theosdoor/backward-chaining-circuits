@@ -5,6 +5,7 @@ myAnimation.mp4
 *.pt
 copilot_context/*
 copilot-instructions.md
+images/*
 
 
 ## Ignore Visual Studio temporary files, build results, and

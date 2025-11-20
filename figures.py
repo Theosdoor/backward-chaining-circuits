@@ -14,12 +14,14 @@ import io
 
 import imgkit
 import matplotlib.pyplot as plt
+import seaborn as sns
 import torch
 from IPython.display import HTML, display
 from transformer_lens import HookedTransformer, HookedTransformerConfig
 
 from src import *
 
+sns.set_theme()
 
 # Select best available device (CUDA, MPS on Apple Silicon, or CPU)
 DEVICE = (
@@ -1324,7 +1326,7 @@ for q in range(model.cfg.n_ctx):
             scores[q, k] = q_out @ k_out.T
 
 
-plt.imshow(scores.softmax(dim=1).detach(), cmap="RdBu", vmin=-1, vmax=1)
+sns.heatmap(scores.softmax(dim=1).detach(), cmap="RdBu", vmin=-1, vmax=1)
 plt.ylabel("Position Embedding in Query")
 plt.xlabel("Position Embedding in Key")
 
@@ -1349,11 +1351,8 @@ for i in range(16):
         scores2[i, j] = query @ key.T
 
 
-plt.imshow((scores2).softmax(-1).detach())
+sns.heatmap((scores2).softmax(-1).detach(), xticklabels=[str(i) for i in range(16)], yticklabels=[">" + str(i) for i in range(16)])
 plt.title("K-Compositon Backtracking Mechanism")
-
-plt.xticks(list(range(16)), [str(i) for i in range(16)])
-plt.yticks(list(range(16)), [">" + str(i) for i in range(16)])
 
 plt.xlabel("Query Token (Goal Representation)")
 plt.ylabel("Key Token")
@@ -1364,7 +1363,6 @@ plt.savefig('images/M_qk2.png', dpi=300)
 # %%
 import torch
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 scores = torch.zeros(model.cfg.n_ctx, model.cfg.d_vocab)
 for q in range(model.cfg.n_ctx):
@@ -1385,22 +1383,13 @@ fig, ax = plt.subplots()  # create figure and axes objects
 position_list=[36, 38, 39, 41, 42, 44, 45]
 scores = scores[position_list]
 
-ax.imshow(scores, cmap="Blues", vmin=0, vmax=1)
+sns.heatmap(scores, cmap="Blues", vmin=0, vmax=1, ax=ax, linewidths=0.5, linecolor='grey', xticklabels=list(range(scores.shape[1])), yticklabels=position_list)
 
-ax.hlines(np.arange(0.5, scores.shape[0]), *ax.get_xlim(), color='grey', linestyle=':', linewidth=0.5, alpha = 0.7)
-ax.vlines(np.arange(0.5, scores.shape[1]), *ax.get_ylim(), color='grey', linestyle=':', linewidth=0.5, alpha = 0.7)
-
-ax.set_xticks(list(range(scores.shape[1]))) 
 ax.set_xticklabels(list(range(scores.shape[1])), rotation=45) 
-ax.set_yticks(list(range(scores.shape[0]))) 
 ax.set_yticklabels(position_list, rotation=0)
 
 ax.set_ylabel("Position Embedding in Query")
 ax.set_xlabel("Token Embedding in Key")
-
-divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="5%", pad=0.05)
-fig.colorbar(ax.get_images()[0], ax=ax,cax=cax)  # create colorbar  
 
 plt.tight_layout()
 
@@ -1455,14 +1444,11 @@ x_labels = x_labels[6:] + x_labels[:6]
 # Create the heatmap using imshow
 plt.figure(figsize=(20, 8))    # Set the figure size as you like
 
-plt.imshow(out.cpu().detach(), cmap='RdBu', vmax=10, vmin=-10, aspect='auto')  # Choose a colormap that suits your preference
+sns.heatmap(out.cpu().detach(), cmap='RdBu', vmax=10, vmin=-10, xticklabels=x_labels, yticklabels=y_labels)
 
 # Configure the ticks
-plt.xticks(ticks=np.arange(len(x_labels)), labels=x_labels, fontsize="14")  # Set x-axis labels
-plt.yticks(ticks=np.arange(len(important_pos)), labels=y_labels, fontsize="14")  # Optionally, set y-axis labels if needed
-
-# Adding a colorbar to show the scale
-plt.colorbar()
+plt.xticks(fontsize="14")  # Set x-axis labels
+plt.yticks(fontsize="14")  # Optionally, set y-axis labels if needed
 
 # Optional enhancements
 plt.xlabel('Output Token')
