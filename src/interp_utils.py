@@ -236,7 +236,7 @@ def calculate_tuned_lens(model, dataset):
     # Create input/output pairs
     X = {key: [] for key in acts.keys()}
     y = []
-    for gidx, graph in enumerate(graphs):
+    for gidx, graph in tqdm_auto.tqdm(enumerate(graphs), total=len(graphs), desc="Processing graphs"):
         # Get output labels
         tokens = dataset.tokenize(graph)[:-1]
         start_idx = np.where(tokens == dataset.start_token)[0].item() + 2
@@ -253,7 +253,7 @@ def calculate_tuned_lens(model, dataset):
     y = np.concatenate(y, axis=0).astype(np.int64)
     # Calculate a lens for every layer
     translators = {}
-    for key in X.keys():
+    for key in tqdm_auto.tqdm(X.keys(), desc="Training lenses"):
         tprobe = LinearClsProbe(fit_intercept=False)
         tprobe.fit(X[key], y)
         print(tprobe.score(X[key], y))

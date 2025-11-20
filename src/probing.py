@@ -135,7 +135,9 @@ class Probe:
                 bX, by = bX.to(self.device), by.to(self.device)
                 pred = self.model(bX)
                 acc += self.get_acc(by, pred)[0] * bX.shape[0]
-        return acc.item() / len(dataset)
+        if isinstance(acc, torch.Tensor):
+            acc = acc.item()
+        return acc / len(dataset)
 
     def predict(self, X):
         assert self.model is not None, "Model has not been trained"

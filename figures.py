@@ -9,6 +9,7 @@
 import math
 import os
 import pickle
+import io
 
 
 import imgkit
@@ -72,6 +73,9 @@ for l in range(model.cfg.n_layers):
 
 # %% [markdown]
 # ### Tuned Lens
+# * 4th lens score: 0.7257897283418372
+# * 5th: 0.9673407840982938
+# * 6th: 1.0
 
 # %%
 def load_or_compute_tuned_lenses(model, dataset, filename='tuned_lenses.pkl'):
@@ -79,14 +83,29 @@ def load_or_compute_tuned_lenses(model, dataset, filename='tuned_lenses.pkl'):
     if os.path.exists(filename):
         # Load the tuned lenses from the pickle file
         with open(filename, 'rb') as file:
-            lenses = pickle.load(file)
+            try:
+                lenses = pickle.load(file)
+            except RuntimeError:
+                # If loading fails (e.g. CUDA tensors on CPU), try mapping to current device
+                file.seek(0)
+                class DeviceUnpickler(pickle.Unpickler):
+                    def find_class(self, module, name):
+                        if module == 'torch.storage' and name == '_load_from_bytes':
+                            return lambda b: torch.load(io.BytesIO(b), map_location=DEVICE)
+                        return super().find_class(module, name)
+                lenses = DeviceUnpickler(file).load()
+        
+        # Ensure lenses are on the correct device
+        lenses = {k: v.to(DEVICE) for k, v in lenses.items()}
         print(f'Loaded tuned lenses from {filename}')
     else:
         # Calculate the tuned lenses
         lenses = calculate_tuned_lens(model, dataset)
         # Save the computed tuned lenses to the directory in pickle format
+        # Save as CPU tensors to ensure compatibility across devices
+        lenses_cpu = {k: v.cpu() for k, v in lenses.items()}
         with open(filename, 'wb') as file:
-            pickle.dump(lenses, file)
+            pickle.dump(lenses_cpu, file)
         print(f'Saved tuned lenses to {filename}')
     
     return lenses
@@ -144,6 +163,7 @@ def backtracking_viz_proj(pred, model, dataset, lenses=None, pos=47):
 lenses = load_or_compute_tuned_lenses(model, dataset)
 
 # %%
+os.makedirs("images", exist_ok=True)
 pred = generate_example(16, 89342568, path_length=5, order="backward")
 parse_example(pred)
 fig = backtracking_viz_proj(pred, model, dataset, lenses=lenses)
@@ -238,7 +258,7 @@ def create_table(table_data, header, file_name):
     }
 
     try:
-        imgkit_from_string(html_str, file_name, options)
+        imgkit.from_string(html_str, file_name, options=options)
     except Exception as e:
         print(f"[warn] Could not render image via imgkit: {e}")
         print("[hint] Install wkhtmltoimage (wkhtmltopdf suite) and ensure it is on PATH.\n"
@@ -586,7 +606,7 @@ X_test, y_test = generate_dataset()
 results = linear_probe_all(X_train, y_train, X_test, y_test)
 
 # %%
- import pandas as pd
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -597,15 +617,15 @@ df["source"] = df["source"].str.replace("incoming", r"$B_i$").str.replace("outgo
 
 
 # Separate 'pre' and 'post' data
-df_pre = df[df['source'].str.contains('pre')]
-df_post = df[df['source'].str.contains('mid')]
+df_pre = df[df['source'].str.contains('pre')].copy()
+df_post = df[df['source'].str.contains('mid')].copy()
 
 df_pre["source"]= df_pre["source"].str.replace("pre ", "")
 df_post["source"]= df_post["source"].str.replace("mid ", "")
 
 # Pivot DataFrames to create a 2D structure for each one
-heatmap_df_pre = df_pre.pivot("source", "target", "value")
-heatmap_df_post = df_post.pivot("source", "target", "value")
+heatmap_df_pre = df_pre.pivot(index="source", columns="target", values="value")
+heatmap_df_post = df_post.pivot(index="source", columns="target", values="value")
 
 # Set the style of the visualization
 sns.set_style("white")
@@ -742,7 +762,7 @@ df = pd.DataFrame(results, columns=['source', 'target', 'value'])
 
 df["source"] = df["source"].str.replace("path", "").str.replace("hook_resid_post ", "Path After \n Layer 1").str.replace("hook_resid_pre ", "Path Before \n Layer 1")
 df["target"] = df["target"].str.replace("goal", "Goal")
-heatmap_df = df.pivot("source", "target", "value")
+heatmap_df = df.pivot(index="source", columns="target", values="value")
 
 
 # Set the style of the visualization
@@ -1461,5 +1481,3 @@ for l in range(model.cfg.n_layers):
 M = (model.blocks[5].attn.W_O @ model.W_U)[0]
 important_pos = [1 + 3*i for i in range(16)] + [36, 38, 39, 41, 42, 44, 46]
 contribs = cache["blocks.5.attn.hook_v"][0, important_pos, 0] @ M
-
-# %%
