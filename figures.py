@@ -1304,6 +1304,7 @@ ax.legend()
 # Setting axis names
 ax.set_xlabel('Path Length')
 ax.set_ylabel(f'% of Loss Recovered')
+ax.set_ylim(-200, 100)
 
 # Setting ticks on the x-axis to match your data (starting at 1)
 plt.xticks(range(1, len(list(loss_rec.values())[0]) + 1))
